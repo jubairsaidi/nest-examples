@@ -1,13 +1,13 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { firstValueFrom, from } from 'rxjs';
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { ClientProxy, ClientProxyFactory } from '@nestjs/microservices';
 
 import { MessagingConfigService } from './messaging.config';
 
 @Injectable()
-export class MessagingService {
+export class MessagingService implements OnApplicationShutdown, OnApplicationBootstrap {
   private eventsClient: ClientProxy;
   private reqClient: AxiosInstance;
   constructor(private readonly configService: MessagingConfigService) {
@@ -38,5 +38,13 @@ export class MessagingService {
   async sendHttpAsync<R, I = unknown>(url: string, payload: I) {
     const { data } = await this.reqClient.post<I, AxiosResponse<R>>(url, payload);
     return data;
+  }
+
+  async onApplicationBootstrap() {
+    await this.eventsClient.connect();
+  }
+
+  async onApplicationShutdown() {
+    await this.eventsClient.close();
   }
 }
